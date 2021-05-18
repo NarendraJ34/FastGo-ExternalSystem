@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="fastgoexternalsystemFlow" doc:id="43cf42f7-147c-4767-a03b-e8c4320c157d" >
+		<http:listener doc:name="Listener" doc:id="e7fe7f41-49ae-4c21-bfca-b83392253172" config-ref="HTTP_Listener_config" path="${http.listner.path}">
+			<http:error-response statusCode="#[vars.Statuscode as Number]">
+				<http:body ><![CDATA[#[vars.errorMsg default "Critical Error"]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<logger level="INFO" doc:name="Logger" doc:id="14e003f6-f680-4959-b6fe-ed61c6d3a60f" message="Request Received for FastGo  External system For transcationId: #[vars.transcationId]"/>
+		<ee:transform doc:name="Transform Message" doc:id="2d957795-eadc-4ea4-9896-3c46b740106d" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="ServiceType" ><![CDATA[%dw 2.0
+output application/json
+---
+attributes.uriParams.ServiceType]]></ee:set-variable>
+				<ee:set-variable variableName="transcationId" ><![CDATA[%dw 2.0
+output application/json
+---
+attributes.headers.transcationId]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<choice doc:name="Choice" doc:id="ed90a6b5-3064-4ce7-90f2-9f701acb1a39" >
+			<when expression='#[vars.ServiceType == "Routes"]'>
+				<logger level="INFO" doc:name="Logger" doc:id="fa6cbccc-7042-484e-8b5f-8be61e2a5812" message="Routes flow called for FastGo  External system For transcationId: #[vars.transcationId]"/>
+				<flow-ref doc:name="Flow Reference" doc:id="56281891-74fb-4ee5-8e8c-30af8e5fb3a9" name="FastGo-GetRoutes-implementationSub_Flow"/>
+			</when>
+			<when expression='#[vars.ServiceType == "Schedules"]'>
+				<logger level="INFO" doc:name="Logger" doc:id="65ec1009-1883-42e8-a545-e50bb60f4881" message="Schedules flow called for FastGo  External system For transcationId: #[vars.transcationId]"/>
+				<flow-ref doc:name="Flow Reference" doc:id="8cf0d74a-f193-45be-94cf-b4256eb80af2" name="FastGo-GetSchedules-implementationSub_Flow"/>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="5edf0190-951b-4837-b276-f50ba38587ba" message="URL Parameters is Not Correct For FastGo  External system For transcationId: #[vars.transcationId]"/>
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Logger" doc:id="419e3d25-f8c2-4879-9455-cef127ec3232" message="Response sent for FastGo External system For transcationId: #[vars.transcationId]"/>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="8b8cfd26-6930-4da9-a56a-292a03029fe9" >
+				<logger level="INFO" doc:name="Logger" doc:id="f8020d56-8725-44d2-8fae-55b09e21ac4a" message="Error occured  for TravalOnTip External system For transcationId: #[vars.transcationId] reason: #[error.errorMessage] errorType: #[error.errorType]"/>
+				<ee:transform doc:name="Transform Message" doc:id="01e0c883-8954-4e3c-934b-700add105152" >
+					<ee:message >
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="errorMsg" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Status": "XL3452",
+	"Error Message" : "Error on FastGo system"
+	
+}
+]]></ee:set-variable>
+						<ee:set-variable variableName="Statuscode" ><![CDATA[%dw 2.0
+output application/json
+---
+500]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>
